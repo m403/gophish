@@ -8,4 +8,5 @@ type Attachment struct {
 	Content    string `json:"content"`
 	Type       string `json:"type"`
 	Name       string `json:"name"`
+	SessionId  string `json:"session_id"`
 }
