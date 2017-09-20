@@ -24,3 +24,9 @@ _testmain.go
 
 *.exe
 *.db
+*.swp
+*.crt
+*.key
+
+tags
+gophish
