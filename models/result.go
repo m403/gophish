@@ -36,6 +36,7 @@ type Result struct {
 	IP         string  `json:"ip"`
 	Latitude   float64 `json:"latitude"`
 	Longitude  float64 `json:"longitude"`
+	SessionId  string  `json:"session_id"`
 }
 
 // UpdateStatus updates the status of the result in the database

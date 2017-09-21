@@ -121,12 +121,14 @@ func processCampaign(c *models.Campaign) {
 			TrackingURL string
 			Tracker     string
 			From        string
+			SessionId   string
 		}{
 			t,
 			c.URL + "?rid=" + t.RId,
 			c.URL + "/track?rid=" + t.RId,
 			"<img alt='' style='display: none' src='" + c.URL + "/track?rid=" + t.RId + "'/>",
 			fn,
+			t.SessionId,
 		}
 
 		// Parse the customHeader templates
@@ -198,18 +200,21 @@ func processCampaign(c *models.Campaign) {
 				e.AddAlternative("text/html", htmlBuff.String())
 			}
 		}
-		// Attach the files
+		// Attach the target file
 		for _, a := range c.Template.Attachments {
-			e.Attach(func(a models.Attachment) (string, gomail.FileSetting, gomail.FileSetting) {
-				h := map[string][]string{"Content-ID": {fmt.Sprintf("<%s>", a.Name)}}
-				return a.Name, gomail.SetCopyFunc(func(w io.Writer) error {
-					decoder := base64.NewDecoder(base64.StdEncoding, strings.NewReader(a.Content))
-					_, err = io.Copy(w, decoder)
-					return err
-				}), gomail.SetHeader(h)
-			}(a))
+			if a.SessionId == t.SessionId {
+				Logger.Printf("Attaching %s, SessionId %s\n", a.Name, a.SessionId)
+				e.Attach(func(a models.Attachment) (string, gomail.FileSetting, gomail.FileSetting) {
+					h := map[string][]string{"Content-ID": {fmt.Sprintf("<%s>", a.Name)}}
+					return a.Name, gomail.SetCopyFunc(func(w io.Writer) error {
+						decoder := base64.NewDecoder(base64.StdEncoding, strings.NewReader(a.Content))
+						_, err = io.Copy(w, decoder)
+						return err
+					}), gomail.SetHeader(h)
+				}(a))
+			}
 		}
-		Logger.Printf("Sending Email to %s\n", t.Email)
+		Logger.Printf("Sending Email to %s, SessionId %s\n", t.Email, t.SessionId)
 		err = gomail.Send(s, e)
 		if err != nil {
 			Logger.Println(err)
@@ -350,17 +355,20 @@ func SendTestEmail(s *models.SendTestEmailRequest) error {
 			e.AddAlternative("text/html", htmlBuff.String())
 		}
 	}
-	// Attach the files
+	// Attach the target file
 	for _, a := range s.Template.Attachments {
-		e.Attach(func(a models.Attachment) (string, gomail.FileSetting) {
-			return a.Name, gomail.SetCopyFunc(func(w io.Writer) error {
-				decoder := base64.NewDecoder(base64.StdEncoding, strings.NewReader(a.Content))
-				_, err = io.Copy(w, decoder)
-				return err
-			})
-		}(a))
+		if a.SessionId == s.Target.SessionId {
+			Logger.Printf("Attaching %s, SessionId %s\n", a.Name, s.Target.SessionId)
+			e.Attach(func(a models.Attachment) (string, gomail.FileSetting) {
+				return a.Name, gomail.SetCopyFunc(func(w io.Writer) error {
+					decoder := base64.NewDecoder(base64.StdEncoding, strings.NewReader(a.Content))
+					_, err = io.Copy(w, decoder)
+					return err
+				})
+			}(a))
+		}
 	}
-	Logger.Printf("Sending Email to %s\n", s.Email)
+	Logger.Printf("Sending Email to %s, SessionId %s\n", s.Email, s.Target.SessionId)
 	err = gomail.Send(dc, e)
 	if err != nil {
 		Logger.Println(err)
