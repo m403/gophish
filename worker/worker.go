@@ -43,9 +43,11 @@ func (w *Worker) Start() {
 			continue
 		}
 		for _, c := range cs {
-			go func(c models.Campaign) {
-				processCampaign(&c)
-			}(c)
+			//go func(c models.Campaign) {
+				//processCampaign(&c)
+			//}(c)
+			Logger.Printf("Processing campaign %s", c.Name)
+			processCampaign(&c)
 		}
 	}
 }
@@ -114,6 +116,8 @@ func processCampaign(c *models.Campaign) {
 	// Send each email
 	e := gomail.NewMessage()
 	for _, t := range c.Results {
+		Logger.Println("Sleep 1 sec.")
+		time.Sleep(time.Second * 1)
 		e.SetAddressHeader("From", f.Address, f.Name)
 		td := struct {
 			models.Result
