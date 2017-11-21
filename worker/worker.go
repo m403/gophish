@@ -170,7 +170,7 @@ func processCampaign(c *models.Campaign) {
 			Logger.Println(err)
 		}
 		e.SetHeader("Subject", subjBuff.String())
-		Logger.Println("Creating email using template")
+		Logger.Printf("Creating email using template %s", c.Template.Name)
 		e.SetHeader("To", t.FormatAddress())
 		if c.Template.Text != "" {
 			var textBuff bytes.Buffer
