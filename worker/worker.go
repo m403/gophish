@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/base64"
-	"encoding/json"
+	//"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -225,28 +225,41 @@ func processCampaign(c *models.Campaign) {
 				}(a))
 			}
 		}
-		Logger.Printf("Sending Email to %s, SessionId %s\n", t.Email, t.SessionId)
-		err = gomail.Send(s, e)
-		if err != nil {
-			Logger.Println(err)
-			es := struct {
-				Error string `json:"error"`
-			}{
-				Error: err.Error(),
+		Logger.Printf("Sending Email to %s, SessionId %s", t.Email, t.SessionId)
+		for errSend := gomail.Send(s, e); errSend != nil;  {
+			Logger.Println(errSend)
+			Logger.Printf("Trying connecting to SMTP server %s", c.SMTP.Name)
+			s, errSMTP := d.Dial()
+			for errSMTP != nil {
+				Logger.Println("Sleep 10 sec.")
+				time.Sleep(time.Second * 10)
+				Logger.Printf("Trying connecting to SMTP server %s", c.SMTP.Name)
+				s, errSMTP = d.Dial()
 			}
-			ej, err := json.Marshal(es)
-			if err != nil {
-				Logger.Println(err)
-			}
-			err = t.UpdateStatus(models.ERROR)
-			if err != nil {
-				Logger.Println(err)
-			}
-			err = c.AddEvent(models.Event{Email: t.Email, Message: models.EVENT_SENDING_ERROR, Details: string(ej)})
-			if err != nil {
-				Logger.Println(err)
-			}
-		} else {
+			Logger.Println("Connection successful")
+			Logger.Printf("Sending Email to %s, SessionId %s", t.Email, t.SessionId)
+			errSend = gomail.Send(s, e);
+		}
+		//if err != nil {
+			//Logger.Println(err)
+			//es := struct {
+				//Error string `json:"error"`
+			//}{
+				//Error: err.Error(),
+			//}
+			//ej, err := json.Marshal(es)
+			//if err != nil {
+				//Logger.Println(err)
+			//}
+			//err = t.UpdateStatus(models.ERROR)
+			//if err != nil {
+				//Logger.Println(err)
+			//}
+			//err = c.AddEvent(models.Event{Email: t.Email, Message: models.EVENT_SENDING_ERROR, Details: string(ej)})
+			//if err != nil {
+				//Logger.Println(err)
+			//}
+		//} else {
 			err = t.UpdateStatus(models.EVENT_SENT)
 			if err != nil {
 				Logger.Println(err)
@@ -255,7 +268,7 @@ func processCampaign(c *models.Campaign) {
 			if err != nil {
 				Logger.Println(err)
 			}
-		}
+		//}
 		e.Reset()
 	}
 	err = c.UpdateStatus(models.CAMPAIGN_EMAILS_SENT)
