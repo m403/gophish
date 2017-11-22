@@ -88,31 +88,38 @@ func processCampaign(c *models.Campaign) {
 	}
 	d.LocalName = hostname
 	s, err := d.Dial()
+	for err != nil {
+		Logger.Println(err)
+		Logger.Println("Sleep 3 sec.")
+		time.Sleep(time.Second * 3)
+		Logger.Printf("Trying connecting to SMTP server %s", c.SMTP.Name)
+		s, err = d.Dial()
+	}
 	// Short circuit if we have an err
 	// However, we still need to update each target
-	if err != nil {
-		Logger.Println(err)
-		for _, t := range c.Results {
-			es := struct {
-				Error string `json:"error"`
-			}{
-				Error: err.Error(),
-			}
-			ej, err := json.Marshal(es)
-			if err != nil {
-				Logger.Println(err)
-			}
-			err = t.UpdateStatus(models.ERROR)
-			if err != nil {
-				Logger.Println(err)
-			}
-			err = c.AddEvent(models.Event{Email: t.Email, Message: models.EVENT_SENDING_ERROR, Details: string(ej)})
-			if err != nil {
-				Logger.Println(err)
-			}
-		}
-		return
-	}
+	//if err != nil {
+		//Logger.Println(err)
+		//for _, t := range c.Results {
+			//es := struct {
+				//Error string `json:"error"`
+			//}{
+				//Error: err.Error(),
+			//}
+			//ej, err := json.Marshal(es)
+			//if err != nil {
+				//Logger.Println(err)
+			//}
+			//err = t.UpdateStatus(models.ERROR)
+			//if err != nil {
+				//Logger.Println(err)
+			//}
+			//err = c.AddEvent(models.Event{Email: t.Email, Message: models.EVENT_SENDING_ERROR, Details: string(ej)})
+			//if err != nil {
+				//Logger.Println(err)
+			//}
+		//}
+		//return
+	//}
 	// Send each email
 	e := gomail.NewMessage()
 	for _, t := range c.Results {
